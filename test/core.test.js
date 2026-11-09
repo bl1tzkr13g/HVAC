@@ -1,7 +1,7 @@
 import {test,after,before} from 'node:test';
 import assert from 'node:assert/strict';
 import {categories, questionBank, makeExam, tracks, sources, epaScopes} from '../public/content.js';
-import {emptyProgress,validProgress,validSession,score,missedQuestions, epaSectionScores} from '../public/model.js';
+import {emptyProgress,validProgress,validSession,score,missedQuestions, epaSectionScores, createAttemptId} from '../public/model.js';
 import {server} from '../server.js';
 let base;
 before(async()=>{await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));base=`http://127.0.0.1:${server.address().port}`;});
@@ -62,4 +62,11 @@ test('EPA progress and sessions remain compatible with existing C-20 v1 backups'
  p.completed.push('epa-core');p.bookmarks.push('epa-type2-1');p.attempts.push({id:'epa',date:new Date().toISOString(),track:'epa',scope:'type2',mode:'exam',results:makeExam('epa',Math.random,'type2').map(q=>({id:q.id,choice:0}))});assert.ok(validProgress(p));
  const s={track:'epa',scope:'universal',mode:'exam',ids:makeExam('epa').map(q=>q.id),orders:Array.from({length:100},()=>[0,1,2,3]),answers:Array(100).fill(null),checked:Array(100).fill(false),index:99,startedAt:100,deadline:200};assert.ok(validSession(s));assert.equal(validSession({...s,scope:'not-an-exam'}),false);
  p.attempts[1].scope='not-an-exam';assert.equal(validProgress(p),false);
+});
+
+test('Attempt IDs work on HTTPS, HTTP LAN origins without randomUUID, and without Web Crypto',()=>{
+ assert.equal(createAttemptId({randomUUID:()=> 'secure-context-id'}),'secure-context-id');
+ const ids=new Set(Array.from({length:1000},()=>createAttemptId({getRandomValues:array=>crypto.getRandomValues(array)})));assert.equal(ids.size,1000);
+ const fallback=new Set(Array.from({length:1000},()=>createAttemptId({})));assert.equal(fallback.size,1000);
+ assert.equal(typeof createAttemptId(null),'string');
 });

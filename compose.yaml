@@ -1,6 +1,7 @@
 services:
   fieldguide:
     build: .
+    pull_policy: build
     image: c20-fieldguide:local
     ports:
       - "${APP_PORT:-8085}:8080"

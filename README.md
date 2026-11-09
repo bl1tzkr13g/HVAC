@@ -102,7 +102,7 @@ The original PDFs are not included or served; no full copyrighted reference book
 
 ## Validation in the development environment
 
-- Ten Node test cases: category totals, question integrity, weighted sampling over 300 generated exams, scoring/missed-answer resolution, backup/session validation, HTTP delivery, methods, and path handling; EPA path membership, individual section targets, and existing-backup compatibility.
+- Eleven Node test cases: category totals, question integrity, weighted sampling over 300 generated exams, scoring/missed-answer resolution, backup/session validation, HTTP delivery, methods, and path handling; EPA path membership, individual section targets, and existing-backup compatibility.
 - Chromium C-20 smoke flow on desktop and seven mobile routes, plus EPA flows on desktop and nine mobile routes.
 - Docker image build, Compose startup/health, and functional requests.
 
@@ -138,3 +138,13 @@ node scripts/epa-smoke.cjs
 ```
 
 This checks a 25-question section quiz, 50-question Type II path, 100-question Universal path, section scoring with an intentionally weak Core, session resume, timer configuration, previous C-20 progress retention, backup/import, and phone layouts. The 100-question EPA bank is finite; a Universal practice session uses every EPA question and subsequent sessions randomize the same bank rather than inventing unseen items.
+
+### Updating a Portainer repository stack
+
+For repository deployment, use `refs/heads/main` and Compose path `compose.yaml`. This file sets `pull_policy: build` so repository updates rebuild the application image rather than reusing an older `c20-fieldguide:local` image. In Portainer, update/redeploy the stack with the latest repository contents. Web-editor stacks using `portainer-stack.yml` still require rebuilding the local image on their Docker endpoint before recreating the service.
+
+Submission supports ordinary HTTP LAN addresses, where browser `crypto.randomUUID()` may be unavailable. Progress IDs use compatible fallbacks; existing progress and unfinished answers are preserved. A focused browser regression verifies both Finish and Submit on question 15 with/without this API, durable result storage, and clearing the unfinished session:
+
+```sh
+node scripts/submission-smoke.cjs
+```

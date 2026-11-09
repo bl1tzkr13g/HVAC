@@ -11,3 +11,12 @@ export function validSession(s){return s && (s.scope===undefined||s.track==='epa
 
 // A study target from the historical manual, never an official credential decision.
 export function epaSectionScores(results){return categories.filter(c=>c.track==='epa'&&results.some(r=>questionsById[r.id]?.category===c.id)).map(c=>{const part=results.filter(r=>questionsById[r.id]?.category===c.id),s=score(part);return {id:c.id,title:c.title,...s,target:18,met:s.total===25&&s.correct>=18};});}
+
+// IDs identify local study records, not credentials. randomUUID is unavailable on
+// ordinary HTTP LAN origins, which are common for Docker/Portainer installations.
+let attemptSequence=0;
+export function createAttemptId(cryptoApi=globalThis.crypto){
+ if(typeof cryptoApi?.randomUUID==='function')return cryptoApi.randomUUID();
+ if(typeof cryptoApi?.getRandomValues==='function')return Array.from(cryptoApi.getRandomValues(new Uint8Array(16)),byte=>byte.toString(16).padStart(2,'0')).join('');
+ return `attempt-${Date.now().toString(36)}-${(++attemptSequence).toString(36)}-${Math.random().toString(36).slice(2)}`;
+}
