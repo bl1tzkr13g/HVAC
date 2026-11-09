@@ -1,0 +1,19 @@
+services:
+  fieldguide:
+    build: .
+    image: c20-fieldguide:local
+    ports:
+      - "${APP_PORT:-8085}:8080"
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.50
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

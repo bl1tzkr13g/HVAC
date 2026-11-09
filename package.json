@@ -1,0 +1,15 @@
+{
+  "name": "c20-fieldguide",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Self-hosted California C-20 and Law & Business study workspace",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test",
+    "check": "node --check server.js && node --check public/app.js && node --check public/content.js && node --check public/model.js && node --check public/epa-content.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

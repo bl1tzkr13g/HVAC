@@ -1,0 +1,66 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.CHROMIUM_PATH||'/usr/bin/chromium',headless:true,args:['--no-sandbox']});
+ const page=await browser.newPage({viewport:{width:1440,height:1100}});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
+ await page.goto(process.env.APP_URL||'http://127.0.0.1:8080');
+ await page.getByRole('heading',{name:'Build your knowledge. Earn your next chapter.'}).waitFor();
+ await page.screenshot({path:'/tmp/c20-desktop.png',fullPage:true});
+ await page.getByRole('link',{name:'Learning library',exact:true}).click();
+ await page.getByRole('searchbox').fill('psychrometrics');
+ assert.equal(await page.locator('.category-card').count(),1);
+ await page.getByRole('searchbox').fill('');
+ await page.locator('a.category-card').first().click();
+ await page.getByRole('button',{name:'Mark lesson complete'}).click();
+ await page.getByRole('button',{name:'Completed · mark unread'}).waitFor();
+ await page.reload();await page.getByRole('button',{name:'Completed · mark unread'}).waitFor();
+ await page.getByRole('button',{name:'Practice this category'}).click();
+ await page.locator('.answers input').first().check();
+ await page.getByRole('button',{name:/Save question/}).click();
+ await page.getByRole('button',{name:'Check answer',exact:true}).click();
+ await page.locator('.explanation').waitFor();
+ assert.equal(await page.locator('.answers input:disabled').count(),4);
+ await page.reload();await page.locator('.explanation').waitFor();
+ await page.getByRole('button',{name:'Submit session',exact:true}).click();
+ await page.getByRole('dialog').getByRole('button',{name:'Submit session'}).click();
+ await page.getByRole('heading',{name:'Every session is a step forward.'}).waitFor();
+ assert.equal(await page.locator('.result-questions details').count(),6);
+ assert.equal((await page.locator('.score-circle strong').innerText()).includes('%'),true);
+ await page.getByRole('link',{name:'Your progress',exact:true}).click();
+ await page.locator('.history-row').first().waitFor();assert.equal(await page.locator('.history-row').count(),1);
+ const download=page.waitForEvent('download');await page.getByRole('button',{name:'Export backup'}).click();
+ const file=await download;await file.saveAs('/tmp/c20-backup.json');
+ await page.getByRole('link',{name:'Practice tests',exact:true}).click();
+ await page.getByRole('button',{name:'Law & Business',exact:true}).click();
+ await page.getByRole('checkbox',{name:'Use the study timer'}).check();
+ await page.getByRole('button',{name:'Start mixed practice exam'}).click();
+ await page.locator('.question-dots button').last().waitFor();assert.equal(await page.locator('.question-dots button').count(),20);
+ await page.locator('.answers input').first().check();
+ assert.equal(await page.locator('#check').count(),0);
+ await page.getByRole('link',{name:'Save & leave'}).click();
+ await page.getByRole('button',{name:'Resume session'}).click();
+ await page.reload();await page.locator('.question-title').waitFor();
+ assert.equal(await page.locator('.answers input:checked').count(),1);
+ // Simulate an expired saved timer, then verify automatic submission on reload.
+ await page.evaluate(()=>{const k='c20-fieldguide-session-v1',s=JSON.parse(localStorage.getItem(k));s.startedAt=Date.now()-120000;s.deadline=Date.now()-1000;localStorage.setItem(k,JSON.stringify(s));});
+ await page.reload();await page.getByRole('heading',{name:'Every session is a step forward.'}).waitFor();
+ assert.equal(await page.locator('.result-questions details').count(),20);
+ await page.getByRole('link',{name:'Your progress',exact:true}).click();
+ await page.locator('#import').setInputFiles('/tmp/c20-backup.json');
+ await page.getByRole('dialog').getByRole('button',{name:'Import backup'}).click();
+ await page.getByText('Backup imported successfully.',{exact:true}).waitFor();await page.locator('.history-row').first().waitFor();assert.equal(await page.locator('.history-row').count(),1);
+ await page.getByRole('link',{name:'Practice tests',exact:true}).click();
+ await page.getByRole('button',{name:'Review mistakes'}).click();
+ await page.locator('.question-title').waitFor();assert.equal(await page.locator('.question-title').count(),1);
+ // Check all routes and layouts at phone width.
+ await page.setViewportSize({width:390,height:844});
+ for(const route of ['overview','learn','learn/contracts','practice','progress','resources','quiz']){
+   await page.goto((process.env.APP_URL||'http://127.0.0.1:8080')+'/#'+route);
+   await page.locator('main h1').first().waitFor();
+   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Mobile overflow at ${route}`);
+   if(route==='overview')await page.screenshot({path:'/tmp/c20-mobile.png',fullPage:true});
+ }
+ assert.deepEqual(errors,[]);console.log('Browser smoke passed: lessons, persistence, search, quiz scoring/review, bookmarks, timed exam, resume, export/import, 7 mobile routes, no console errors.');
+ await browser.close();
+})().catch(e=>{console.error(e);process.exit(1);});

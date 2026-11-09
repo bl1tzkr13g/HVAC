@@ -1,0 +1,21 @@
+# First build c20-fieldguide:local on the Docker host. See README.md.
+# For a remote endpoint, push to your registry and replace the image below.
+services:
+  fieldguide:
+    image: c20-fieldguide:local
+    pull_policy: never
+    ports:
+      - "${APP_PORT:-8085}:8080"
+    restart: unless-stopped
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
+    cpus: 0.50
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
